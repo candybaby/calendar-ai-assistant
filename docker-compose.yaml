@@ -1,0 +1,23 @@
+services:
+  node:
+    image: node:22.11.0
+    container_name: node
+    working_dir: /home/node/app
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/home/node/app
+        # 容器啟動後會執行的 command，這將會覆蓋掉原本 Image 預設 command
+        # 這邊使用 tail -f 是為了讓容器啟動後不要自動關閉
+    command: >
+      bash -c "
+        tail -f
+      "
+
+  mongodb:
+    image: mongo:8.0.3
+    container_name: mongodb
+    ports:
+      - "27017:27017"
