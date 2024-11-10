@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "dev": "node ./app.js"
+  },
+  "dependencies": {
+    "@line/bot-sdk": "^9.4.4",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1"
+  }
+}
