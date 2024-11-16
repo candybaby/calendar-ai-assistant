@@ -1,19 +1,22 @@
-require('dotenv').config();
+import 'dotenv/config';
 
-const express = require('express');
-const line = require('@line/bot-sdk');
+import express from 'express'; // 引入 Express
+import {Client, middleware} from '@line/bot-sdk'; // 引入 LINE Bot SDK3
+import userRepository from './Repositories/UserRepository.js';
+// const userRepository = require('./Repositories/UserRepository');
+const userRepo = new userRepository();
 
 const config = {
     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
     channelSecret: process.env.CHANNEL_SECRET
 };
 
-const client = new line.Client(config);
+const client = new Client(config);
 
 const app = express();
 
 
-app.post('/callback', line.middleware(config), (req, res) => {
+app.post('/callback', middleware(config), (req, res) => {
     Promise
         .all(req.body.events.map(handleEvent))
         .then((result) => res.json(result))
@@ -27,11 +30,20 @@ app.get('/', (_req, res) => {
     res.send('Hello World!')
 })
 
-function handleEvent(event) {
+async function handleEvent(event) {
     if (event.type !== 'message' || event.message.type !== 'text') {
         // ignore non-text-message event
         return Promise.resolve(null);
     }
+
+    const user = await userRepo.findOneByLineId(event.source.userId);
+
+    if (user === null) {
+        userRepo.save({
+            line_id: event.source.userId,
+            'name': 'tang'
+        })
+    }3
 
     // create a echoing text message
     const echo = { type: 'text', text: 'UserId: ' + event.source.userId };
