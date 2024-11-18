@@ -22,6 +22,13 @@ const client = new Client(config);
 
 const app = express();
 
+oauth2Client.on('tokens', (tokens) => {
+    if (tokens.refresh_token) {
+        // store the refresh_token in my database!
+        console.log(tokens.refresh_token);
+    }
+    console.log(tokens);
+});
 
 app.post('/callback', middleware(config), (req, res) => {
     Promise
@@ -38,9 +45,10 @@ app.get('/', (req, res) => {
     // Generate the Google authentication URL
     const url = oauth2Client.generateAuthUrl({
         access_type: 'offline', // Request offline access to receive a refresh token
-        scope: 'https://www.googleapis.com/auth/calendar.readonly' // Scope for read-only access to the calendar
+        scope: 'https://www.googleapis.com/auth/calendar', // Scope for read-only access to the calendar
+        line_id: 'test'
     });
-    // Redirect the user to Google's OAuth 2.0 server
+    // // Redirect the user to Google's OAuth 2.0 server
     res.redirect(url);
 });
 
@@ -58,8 +66,7 @@ app.get('/oauth2callback', (req, res) => {
         }
         // Set the credentials for the Google API client
         oauth2Client.setCredentials(tokens);
-        console.log(tokens);
-        // Notify the user of a successful login
+        // Notify the user of a successful login3
         res.send('Successfully logged in');
     });
 });
@@ -123,8 +130,51 @@ async function handleEvent(event) {
         })
     }
 
-    // create a echoing text message
-    const echo = { type: 'text', text: 'UserId: ' + event.source.userId };
+    let echo;
+    if (user.refresh_token === null || user.refresh_token === undefined) {
+        // const url = oauth2Client.generateAuthUrl({
+        //     access_type: 'offline', // Request offline access to receive a refresh token
+        //     scope: 'https://www.googleapis.com/auth/calendar' // Scope for read-only access to the calendar
+        // });
+
+        // create a echoing text message
+        echo = { type: 'text', text: 'test' };
+    } else {
+
+        oauth2Client.setCredentials({
+            refresh_token: user.refresh_token
+        });
+
+        oauth2Client.on('tokens', (tokens) => {
+            if (tokens.refresh_token) {
+                userRepo.updateByLineId(user.line_id, {
+                    'refresh_token': tokens.refresh_token
+                })
+            }
+        });
+
+        // Create a Google Calendar API client
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        await calendar.events.insert({
+            calendarId: 'primary',
+            auth:oauth2Client,
+            resource: {
+                summary: 'test',
+
+                description: "Demo event",
+                start: {
+                    dateTime: "2024-11-19T07:30:00+08:00",
+                    timeZone: 'Asia/Taipei'
+                },
+                end: {
+                    dateTime: "2024-11-19T07:30:00+08:00",
+                    timeZone: 'Asia/Taipei'
+                },
+            }
+        });
+
+        echo = { type: 'text', text: 'calendar create success!!' };
+    }
 
     // use reply API
     return client.replyMessage(event.replyToken, echo);

@@ -16,4 +16,10 @@ export default class userRepository {
     async save(payload) {
         return userModel(payload).save();
     }
+
+    async updateByLineId(lineId, payload) {
+        return userModel.findOneAndUpdate({
+            'line_id': lineId
+        }, payload);
+    }
 }
