@@ -3,6 +3,7 @@ import 'dotenv/config';
 import express from 'express'; // 引入 Express
 import { google } from 'googleapis';
 import {Client, middleware} from '@line/bot-sdk'; // 引入 LINE Bot SDK3
+import moment from 'moment-timezone';
 import userRepository from './Repositories/UserRepository.js';
 // const userRepository = require('./Repositories/UserRepository');
 const userRepo = new userRepository();
@@ -22,13 +23,13 @@ const client = new Client(config);
 
 const app = express();
 
-oauth2Client.on('tokens', (tokens) => {
-    if (tokens.refresh_token) {
-        // store the refresh_token in my database!
-        console.log(tokens.refresh_token);
-    }
-    console.log(tokens);
-});
+// oauth2Client.on('tokens', (tokens) => {
+//     if (tokens.refresh_token) {
+//         userRepo.updateByLineId(user.line_id, {
+//             'refresh_token': tokens.refresh_token
+//         })
+//     }
+// });
 
 app.post('/callback', middleware(config), (req, res) => {
     Promise
@@ -56,6 +57,7 @@ app.get('/', (req, res) => {
 app.get('/oauth2callback', (req, res) => {
     // Extract the code from the query parameter
     const code = req.query.code;
+    const line_id = req.query.state;
     // Exchange the code for tokens
     oauth2Client.getToken(code, (err, tokens) => {
         if (err) {
@@ -66,7 +68,12 @@ app.get('/oauth2callback', (req, res) => {
         }
         // Set the credentials for the Google API client
         oauth2Client.setCredentials(tokens);
-        // Notify the user of a successful login3
+
+        userRepo.updateByLineId(line_id, {
+            'refresh_token': tokens.refresh_token
+        })
+
+        // Notify the user of a successful login
         res.send('Successfully logged in');
     });
 });
@@ -121,10 +128,12 @@ async function handleEvent(event) {
         return Promise.resolve(null);
     }
 
-    const user = await userRepo.findOneByLineId(event.source.userId);
+    let text = event.message.text;
+
+    let user = await userRepo.findOneByLineId(event.source.userId);
 
     if (user === null) {
-        userRepo.save({
+        user = await userRepo.save({
             line_id: event.source.userId,
             'name': 'tang'
         })
@@ -132,48 +141,45 @@ async function handleEvent(event) {
 
     let echo;
     if (user.refresh_token === null || user.refresh_token === undefined) {
-        // const url = oauth2Client.generateAuthUrl({
-        //     access_type: 'offline', // Request offline access to receive a refresh token
-        //     scope: 'https://www.googleapis.com/auth/calendar' // Scope for read-only access to the calendar
-        // });
+        const url = oauth2Client.generateAuthUrl({
+            access_type: 'offline', // Request offline access to receive a refresh token
+            scope: 'https://www.googleapis.com/auth/calendar', // Scope for read-only access to the calendar
+            state: event.source.userId
+        });
 
         // create a echoing text message
-        echo = { type: 'text', text: 'test' };
+        echo = { type: 'text', text: url };
     } else {
-
         oauth2Client.setCredentials({
             refresh_token: user.refresh_token
         });
 
-        oauth2Client.on('tokens', (tokens) => {
-            if (tokens.refresh_token) {
-                userRepo.updateByLineId(user.line_id, {
-                    'refresh_token': tokens.refresh_token
-                })
-            }
-        });
+        const start = new Date(text);
 
-        // Create a Google Calendar API client
-        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-        await calendar.events.insert({
-            calendarId: 'primary',
-            auth:oauth2Client,
-            resource: {
-                summary: 'test',
 
-                description: "Demo event",
-                start: {
-                    dateTime: "2024-11-19T07:30:00+08:00",
-                    timeZone: 'Asia/Taipei'
-                },
-                end: {
-                    dateTime: "2024-11-19T07:30:00+08:00",
-                    timeZone: 'Asia/Taipei'
-                },
-            }
-        });
+        if (start.toString() === 'Invalid Date') {
+            echo = { type: 'text', text: 'calendar create fail!!' };
+        } else {
+            // Create a Google Calendar API client
+            const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+            await calendar.events.insert({
+                calendarId: 'primary',
+                auth:oauth2Client,
+                resource: {
+                    summary: 'test',
+                    start: {
+                        dateTime: moment.tz(text, "Asia/Taipei").format(),
+                        timeZone: 'Asia/Taipei'
+                    },
+                    end: {
+                        dateTime: moment.tz(text, "Asia/Taipei").format(),
+                        timeZone: 'Asia/Taipei'
+                    },
+                }
+            });
 
-        echo = { type: 'text', text: 'calendar create success!!' };
+            echo = { type: 'text', text: 'calendar create success!!' };
+        }
     }
 
     // use reply API
