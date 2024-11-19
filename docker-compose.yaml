@@ -19,5 +19,7 @@ services:
   mongodb:
     image: mongo:8.0.3
     container_name: mongodb
+    volumes:
+      - ./mongo:/data/db
     ports:
       - "27017:27017"
