@@ -3,9 +3,11 @@ import 'dotenv/config';
 import express from 'express'; // 引入 Express
 import { google } from 'googleapis';
 import {Client, middleware} from '@line/bot-sdk'; // 引入 LINE Bot SDK3
-import moment from 'moment-timezone';
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
 import userRepository from './Repositories/UserRepository.js';
-// const userRepository = require('./Repositories/UserRepository');
+import CalendarEvent from './CalendarEvent.js';
+const openai = new OpenAI();
 const userRepo = new userRepository();
 
 const config = {
@@ -154,32 +156,41 @@ async function handleEvent(event) {
             refresh_token: user.refresh_token
         });
 
-        const start = new Date(text);
+        const completion = await openai.beta.chat.completions.parse({
+            messages: [{
+                role: "system",
+                content: `你會幫我把內容拆分成標題、時間、地點、描述。
+                範例: ['與同事聚餐', '2015-05-28T09:00:00+08:00','2015-05-28T09:00:00+08:00', '美麗華', '具體描述']，
+                並且要能整理出對應標題、行事曆時間、地點，其餘內容整理完後放在描述裡面，
+                現在是 2024 年，今天是11月21日。最後透過json回傳。 內容為 => ${text}`
+            }],
+            model: "gpt-4o-mini",
+            response_format: zodResponseFormat(CalendarEvent, "event")
+        });
+        const data = completion.choices[0].message.parsed;
+        console.log(data);
 
+        // Create a Google Calendar API client
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        await calendar.events.insert({
+            calendarId: 'primary',
+            auth:oauth2Client,
+            resource: {
+                summary: data.title,
+                location: data.location,
+                description: data.description,
+                start: {
+                    dateTime: data.startTime,
+                    timeZone: 'Asia/Taipei'
+                },
+                end: {
+                    dateTime: data.endTime,
+                    timeZone: 'Asia/Taipei'
+                },
+            }
+        });
 
-        if (start.toString() === 'Invalid Date') {
-            echo = { type: 'text', text: 'calendar create fail!!' };
-        } else {
-            // Create a Google Calendar API client
-            const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-            await calendar.events.insert({
-                calendarId: 'primary',
-                auth:oauth2Client,
-                resource: {
-                    summary: 'test',
-                    start: {
-                        dateTime: moment.tz(text, "Asia/Taipei").format(),
-                        timeZone: 'Asia/Taipei'
-                    },
-                    end: {
-                        dateTime: moment.tz(text, "Asia/Taipei").format(),
-                        timeZone: 'Asia/Taipei'
-                    },
-                }
-            });
-
-            echo = { type: 'text', text: 'calendar create success!!' };
-        }
+        echo = { type: 'text', text: 'calendar create success!!' };
     }
 
     // use reply API
