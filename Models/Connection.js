@@ -1,10 +1,13 @@
-import mongoose from 'mongoose';
-const { Schema } = mongoose;
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
-mongoose.connect('mongodb://mongodb:27017/calendar')
-    .then(() => console.log('Connected!'));3
+const dynamoDB = new DynamoDBClient({
+    region: 'ap-northeast-1',
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+});
 
 export {
-    mongoose,
-    Schema
+    dynamoDB
 };
