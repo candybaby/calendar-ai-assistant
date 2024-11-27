@@ -3,7 +3,7 @@ import 'dotenv/config';
 import serverless from 'serverless-http';
 import express from 'express'; // 引入 Express
 import { google } from 'googleapis';
-import {Client, middleware} from '@line/bot-sdk'; // 引入 LINE Bot SDK3
+import * as line from '@line/bot-sdk';
 import OpenAI from 'openai';
 import moment from 'moment';
 import { zodResponseFormat } from "openai/helpers/zod";
@@ -11,18 +11,21 @@ import { createUser, getUserByLineId, updateUserRefreshToken } from './Models/Us
 import CalendarEvent from './CalendarEvent.js';
 const openai = new OpenAI();
 
+// create LINE SDK config from env variables
 const config = {
-    channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
-    channelSecret: process.env.CHANNEL_SECRET
+    channelSecret: process.env.CHANNEL_SECRET,
 };
+
+// create LINE SDK client
+const client = new line.messagingApi.MessagingApiClient({
+    channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN
+});
 
 const oauth2Client = new google.auth.OAuth2(
     process.env.CLIENT_ID,
     process.env.SECRET_ID,
     process.env.REDIRECT
 );
-
-const client = new Client(config);
 
 const app = express();
 
@@ -34,7 +37,7 @@ const app = express();
 //     }
 // });
 
-app.post('/callback', middleware(config), (req, res) => {
+app.post('/callback', line.middleware(config), (req, res) => {
     Promise
         .all(req.body.events.map(handleEvent))
         .then((result) => res.json(result))
@@ -68,10 +71,10 @@ app.get('/oauth2callback', (req, res) => {
             res.send('Error');
             return;
         }
-        // Set the credentials for the Google API client
-        oauth2Client.setCredentials(tokens);
 
-        await updateUserRefreshToken(line_id, tokens.refresh_token);
+        if (tokens?.refresh_token !== undefined) {
+            await updateUserRefreshToken(line_id, tokens.refresh_token);
+        }
 
         // Notify the user of a successful login
         res.send('Successfully logged in');
@@ -85,6 +88,7 @@ async function handleEvent(event) {
     }
 
     let text = event.message.text;
+    let lineInfo = await client.getProfile(event.source.userId);
 
     let user = await getUserByLineId(event.source.userId);
 
@@ -94,7 +98,7 @@ async function handleEvent(event) {
                 'S': event.source.userId
             },
             name: {
-                'S': 'Tang'
+                'S': lineInfo.displayName
             }
         })
 
@@ -106,6 +110,7 @@ async function handleEvent(event) {
         const url = oauth2Client.generateAuthUrl({
             access_type: 'offline', // Request offline access to receive a refresh token
             scope: 'https://www.googleapis.com/auth/calendar', // Scope for read-only access to the calendar
+            prompt: 'consent',
             state: event.source.userId
         });
 
@@ -154,7 +159,10 @@ async function handleEvent(event) {
     }
 
     // use reply API
-    return client.replyMessage(event.replyToken, echo);
+    return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [echo]
+    });
 }
 
 export const handler = serverless(app);
