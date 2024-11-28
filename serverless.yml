@@ -1,0 +1,33 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: tangtest
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: calendar-ai
+
+
+package:
+  excludeDevDependencies: true
+  patterns:
+    - '!.idea/**'
+    - '!.env'
+    - '!mongo/**'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ${env:REGION}
+  environment:
+    CHANNEL_ACCESS_TOKEN: ${env:CHANNEL_ACCESS_TOKEN}
+    CHANNEL_SECRET: ${env:CHANNEL_SECRET}
+    CLIENT_ID: ${env:CLIENT_ID}
+    SECRET_ID: ${env:SECRET_ID}
+    REDIRECT: ${env:REDIRECT}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
+
+plugins:
+  - serverless-offline
+
+functions:
+  api:
+    handler: app.handler
+    events:
+      - httpApi: "*"
