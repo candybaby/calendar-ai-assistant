@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Print secret value
+        run: |
+          echo "${{ secrets.REGION }}"
+
       # Step 1: 檢出代碼
       - name: Checkout Code
         uses: actions/checkout@v4
