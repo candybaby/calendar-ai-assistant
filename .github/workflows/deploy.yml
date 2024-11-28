@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    steps:
       # Step 1: 檢出代碼
       - name: Checkout Code
         uses: actions/checkout@v4
