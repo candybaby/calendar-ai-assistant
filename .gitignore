@@ -3,4 +3,3 @@
 node_modules
 mongo
 .serverless
-serverless.yml
