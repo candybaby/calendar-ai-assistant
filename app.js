@@ -137,7 +137,7 @@ async function handleEvent(event) {
 
         // Create a Google Calendar API client
         const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-        await calendar.events.insert({
+        const response = await calendar.events.insert({
             calendarId: 'primary',
             auth:oauth2Client,
             resource: {
@@ -154,15 +154,17 @@ async function handleEvent(event) {
                 },
                 reminders: {
                     useDefault: false,
-                    overrides: {
-                        method: 'popup',
-                        minutes: data.reminders
-                    }
+                    overrides: [
+                        {
+                            method: 'popup',
+                            minutes: data.reminders
+                        }
+                    ]
                 }
             }
         });
 
-        echo = { type: 'text', text: JSON.stringify(data) };
+        echo = { type: 'text', text: response.data.htmlLink };
     }
 
     // use reply API
