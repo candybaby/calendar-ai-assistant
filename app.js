@@ -125,9 +125,9 @@ async function handleEvent(event) {
         const completion = await openai.beta.chat.completions.parse({
             messages: [{
                 role: "system",
-                content: `你會幫我把內容拆分成標題、時間、地點、描述。
-                範例: ['與同事聚餐', '2015-05-28T09:00:00+08:00','2015-05-28T09:00:00+08:00', '美麗華', '具體描述']，
-                並且要能整理出對應標題、行事曆時間、地點，其餘內容整理完後放在描述裡面，
+                content: `你會幫我把內容拆分成標題、開始時間、結束時間、提醒(轉換成分鐘)、地點、描述。
+                範例: ['與同事聚餐', '2015-05-28T09:00:00+08:00','2015-05-28T10:00:00+08:00', 60, '美麗華', '具體描述']，
+                並且要能整理出對應標題、行事曆時間、幾分鐘前提醒、地點，其餘內容整理完後放在描述裡面，
                 現在是 2024 年，今天是${today}。最後透過json回傳。 內容為 => ${text}`
             }],
             model: "gpt-4o-mini",
@@ -152,6 +152,13 @@ async function handleEvent(event) {
                     dateTime: data.endTime,
                     timeZone: 'Asia/Taipei'
                 },
+                reminders: {
+                    useDefault: false,
+                    overrides: {
+                        method: 'popup',
+                        minutes: data.reminders
+                    }
+                }
             }
         });
 
