@@ -9,6 +9,7 @@ import moment from 'moment';
 import { zodResponseFormat } from "openai/helpers/zod";
 import { createUser, getUserByLineId, updateUserRefreshToken } from './Models/User.js'
 import CalendarEvent from './CalendarEvent.js';
+import generateFlexMessage from './lineFlexMessage.js';
 const openai = new OpenAI();
 
 // create LINE SDK config from env variables
@@ -105,7 +106,8 @@ async function handleEvent(event) {
         user = await getUserByLineId(event.source.userId);
     }
 
-    let echo;
+    let textMessage;
+    let flexMessage;
     if (user?.Item?.refresh_token?.S === null || user?.Item?.refresh_token?.S === undefined) {
         const url = oauth2Client.generateAuthUrl({
             access_type: 'offline', // Request offline access to receive a refresh token
@@ -115,7 +117,8 @@ async function handleEvent(event) {
         });
 
         // create a echoing text message
-        echo = { type: 'text', text: url };
+        textMessage = { type: 'text', text: '點擊下方按鈕,完成授權' };
+        flexMessage = generateFlexMessage('Google授權', url);
     } else {
         oauth2Client.setCredentials({
             refresh_token: user?.Item?.refresh_token?.S
@@ -164,13 +167,14 @@ async function handleEvent(event) {
             }
         });
 
-        echo = { type: 'text', text: response.data.htmlLink };
+        textMessage = { type: 'text', text: '點擊下方按鈕,確認行程' };
+        flexMessage = generateFlexMessage('Google行事曆', response.data.htmlLink);
     }
 
     // use reply API
     return client.replyMessage({
         replyToken: event.replyToken,
-        messages: [echo]
+        messages: [textMessage, flexMessage]
     });
 }
 
