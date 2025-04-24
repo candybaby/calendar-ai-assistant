@@ -1,7 +1,7 @@
 const generateFlexMessage = (altText, uri) => {
     const uriAction = {
         type: 'uri',
-        label: 'Google Calendar',
+        label: altText,
         uri: uri
     }
 

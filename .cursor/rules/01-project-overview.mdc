@@ -1,0 +1,24 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 日历AI助手项目
+
+这是一个结合了LINE Bot、Google Calendar API和OpenAI API的应用，用于处理自然语言形式的日历事件请求，并将其添加到Google日历中。
+
+## 主要功能
+- 接收用户通过LINE发送的自然语言消息
+- 使用OpenAI API (GPT-4o-mini)解析消息内容为结构化的日历事件
+- 通过Google Calendar API将事件添加到用户的日历中
+- 使用DynamoDB存储用户信息和授权令牌
+
+## 核心文件
+- [app.js](mdc:app.js): 应用主入口，包含LINE消息处理和Google Calendar集成
+- [CalendarEvent.js](mdc:CalendarEvent.js): 定义日历事件的数据模型
+- [lineFlexMessage.js](mdc:lineFlexMessage.js): 用于生成LINE Flex Message的工具函数
+- [Models/User.js](mdc:Models/User.js): 用户数据模型和DynamoDB操作
+- [Models/Connection.js](mdc:Models/Connection.js): DynamoDB连接配置
+
+## 部署
+项目使用Serverless框架部署到AWS Lambda，通过GitHub Actions自动化部署流程。

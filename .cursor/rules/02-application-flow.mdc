@@ -1,0 +1,28 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 应用流程
+
+## 用户交互流程
+1. 用户通过LINE发送自然语言消息（例如："明天下午3点和李总开会"）
+2. LINE Bot接收消息并转发到应用后端
+3. 应用检查用户是否已授权Google Calendar
+   - 如果未授权，发送授权链接给用户
+   - 如果已授权，继续处理请求
+4. 使用OpenAI API解析消息内容，提取事件信息
+5. 创建Google Calendar事件
+6. 将包含日历链接的确认消息发送回用户
+
+## 授权流程
+1. 用户收到授权链接并点击
+2. 系统重定向到Google OAuth2页面
+3. 用户授权后，Google重定向回应用的回调URL
+4. 应用获取并存储refresh_token
+5. 通知用户授权成功
+
+## 主要处理函数
+- [handleEvent](mdc:app.js): LINE消息主处理函数，位于[app.js](mdc:app.js)中
+- [generateAuthMessage](mdc:app.js): 生成授权消息的函数
+- [generateFlexMessage](mdc:lineFlexMessage.js): 生成LINE Flex消息的工具函数

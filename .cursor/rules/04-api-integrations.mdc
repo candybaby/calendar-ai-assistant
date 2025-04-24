@@ -1,0 +1,53 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# API集成
+
+## LINE Messaging API
+通过[@line/bot-sdk](mdc:app.js)库集成，主要用于：
+- 接收和处理用户消息
+- 发送文本消息和Flex消息回用户
+- 获取用户个人资料信息
+
+关键配置：
+```javascript
+const client = new line.messagingApi.MessagingApiClient({
+    channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN
+});
+```
+
+## Google Calendar API
+通过[googleapis](mdc:app.js)库集成，主要用于：
+- 用户授权（OAuth2流程）
+- 创建日历事件
+- 获取事件链接
+
+关键配置：
+```javascript
+const oauth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.SECRET_ID,
+    process.env.REDIRECT
+);
+```
+
+## OpenAI API
+通过[openai](mdc:app.js)库集成，用于：
+- 解析自然语言消息内容
+- 提取结构化的日历事件信息
+
+关键用法：
+```javascript
+const completion = await openai.beta.chat.completions.parse({
+    messages: [{ role: "system", content: "..." }],
+    model: "gpt-4o-mini",
+    response_format: zodResponseFormat(CalendarEvent, "event")
+});
+```
+
+## AWS DynamoDB
+通过[@aws-sdk/client-dynamodb](mdc:Models/Connection.js)库集成，用于：
+- 存储用户数据
+- 管理授权令牌

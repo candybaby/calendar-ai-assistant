@@ -3,4 +3,5 @@
 node_modules
 mongo
 .serverless
-.cursor
+.cursor/*
+!.cursor/rules/

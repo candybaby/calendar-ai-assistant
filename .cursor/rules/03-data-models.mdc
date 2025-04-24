@@ -1,0 +1,31 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 数据模型
+
+## 日历事件模型
+[CalendarEvent.js](mdc:CalendarEvent.js)定义了使用Zod库验证的日历事件模型，包含以下字段：
+- title: 事件标题
+- startTime: 开始时间（ISO格式）
+- endTime: 结束时间（ISO格式）
+- reminders: 提醒时间（分钟）
+- location: 地点
+- description: 描述
+
+## 用户模型
+用户数据存储在AWS DynamoDB中，通过[Models/User.js](mdc:Models/User.js)进行管理：
+
+### 用户表结构
+- line_id: 主键，用户的LINE ID
+- name: 用户名称
+- refresh_token: Google OAuth2刷新令牌
+
+### 主要数据库操作
+- createUser: 创建新用户
+- getUserByLineId: 通过LINE ID查询用户
+- updateUserRefreshToken: 更新用户的刷新令牌
+
+## 数据库连接
+[Models/Connection.js](mdc:Models/Connection.js)配置了与AWS DynamoDB的连接
