@@ -35,6 +35,23 @@ const getUserByLineId = async (lineId) => {
 
 // Update operation
 const updateUserRefreshToken = async (lineId, refreshToken) => {
+    // 如果 refreshToken 为 null，则移除该属性
+    if (refreshToken === null) {
+        const params = new UpdateItemCommand({
+            TableName: tableName,
+            Key: {
+                line_id: {
+                    'S': lineId
+                }
+            },
+            UpdateExpression: 'REMOVE refresh_token',
+            ReturnValues: 'NONE'
+        });
+
+        return await dynamoDB.send(params);
+    }
+
+    // 否则更新为新的 refresh_token
     const params = new UpdateItemCommand({
         TableName: tableName,
         Key: {
